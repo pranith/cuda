@@ -8,14 +8,23 @@
 #define KB(x) ((x) << 10)
 #define MB(x) ((x) << 20)
 
+#define DIVIDE 2
+
 __global__ void test_kernel(char *data, int maxIdx)
 {
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
 
-	while(tid < maxIdx) {
+	while(tid < maxIdx/DIVIDE) {
 		data[tid] = tid;
 		tid += blockDim.x * gridDim.x;
 	}
+#if (DIVIDE == 2)
+	tid = threadIdx.x + blockIdx.x * blockDim.x;
+	while(tid < maxIdx/2) {
+		data[tid] = tid;
+		tid += blockDim.x * gridDim.x;
+	}
+#endif
 }
 
 int main()
@@ -29,6 +38,11 @@ int main()
 		cudaEventCreate(&before);
 		cudaEventCreate(&after);
 		cudaMallocManaged(&data, MB(i));
+
+#if 1
+		for (int j = 0; j < MB(i); j++)
+			data[j] = j;
+#endif
 		for (int tries = 0; tries < 5; tries++) {
 			cudaEventRecord(before, 0);
 			test_kernel<<<BLOCKS_PER_SM, THREADS_PER_BLOCK>>>(data, maxIdx);
@@ -40,7 +54,7 @@ int main()
 			cudaEventElapsedTime(&time_elapsed, before, after);
 			total_time += time_elapsed;
 		}
-		std::cout << i << "," << total_time/5 << std::endl;
+		std::cout << i << "," << total_time/5 << "," << total_time/(5*i) << std::endl;
 		cudaFree(data);
 	}
 
