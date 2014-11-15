@@ -157,18 +157,18 @@ endif
 # Target rules
 all: build
 
-build: stride
+build: skeleton
 
-stride.o:stride.cu
+skeleton.o:skeleton.cu
 	$(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
-stride: stride.o
+skeleton: skeleton.o
 	$(NVCC) $(ALL_LDFLAGS) $(GENCODE_FLAGS) -o $@ $+ $(LIBRARIES)
 
 run: build
-	./stride
+	./skeleton
 
 clean:
-	rm -f stride stride.o
+	rm -f skeleton skeleton.o
 
 clobber: clean
