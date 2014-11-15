@@ -9,12 +9,16 @@
 #define MB(x) ((x) << 20)
 
 #define CACHE_BLOCK_SIZE 64
+#define NUM_ITERATIONS 10000000
+#define ACCESSES_PER_ITERATION 200
 
-__global__ void test_kernel(char *data, int maxIdx)
+__managed__ __device__ long max_idx = 0;
+
+__global__ void test_kernel(char *data)
 {
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
 
-	while(tid < maxIdx) {
+	while(tid < max_idx) {
 		data[tid] = tid;
 		tid += blockDim.x * gridDim.x;
 	}
@@ -25,7 +29,6 @@ int main()
 	char *data;
 
 	for (int i = 1; i < 256; i++) {
-		int maxIdx = MB(i);
 		float time_elapsed, total_time = 0;
 		cudaEvent_t before, after;
 		cudaEventCreate(&before);
@@ -38,7 +41,7 @@ int main()
 #endif
 		for (int tries = 0; tries < 5; tries++) {
 			cudaEventRecord(before, 0);
-			test_kernel<<<BLOCKS_PER_SM, THREADS_PER_BLOCK>>>(data, maxIdx);
+			test_kernel<<<BLOCKS_PER_SM, THREADS_PER_BLOCK>>>(data);
 			cudaDeviceSynchronize();
 			cudaEventRecord(after, 0);
 
