@@ -149,7 +149,7 @@ GENCODE_SMXX    := -gencode arch=compute_50,code=compute_50
 ifeq ($(OS_ARCH),armv7l)
 GENCODE_FLAGS   ?= $(GENCODE_SM32)
 else
-GENCODE_FLAGS   ?= $(GENCODE_SM35)
+GENCODE_FLAGS   ?= $(GENCODE_SM30)
 endif
 
 ################################################################################

@@ -11,9 +11,8 @@
 
 #define CACHE_BLOCK_SIZE 64
 #define NUM_ITERATIONS 10000000
-#define ACCESSES_PER_ITERATION 200
-
-long max_idx = 0;
+#define MAX_ACCESSES_PER_ITERATION 200
+#define MAX_TRIALS 5
 
 __global__ void test_kernel(char *src, long max_idx)
 {
@@ -23,12 +22,19 @@ __global__ void test_kernel(char *src, long max_idx)
 		src[tid] = tid;
 		tid += blockDim.x * gridDim.x;
 	}
+
+	for (long iter = 0; iter < NUM_ITERATIONS; iter++) {
+		#include "defines.h";
+	}
 }
 
 int main(int argc, char *argv[])
 {
 	char *data;
 	int mem_size;
+	long max_idx;
+	float time_elapsed, total_time = 0;
+	int trials;
 
 	if (argc < 2) {
 		fprintf(stderr, "Usage: %s <mem size(MB)>\n", argv[0]);
@@ -36,27 +42,28 @@ int main(int argc, char *argv[])
 	}
 
 	mem_size = atoi(argv[1]);
-	max_idx = MB(mem_size);
 
-	float time_elapsed, total_time = 0;
 	cudaEvent_t before, after;
 	cudaEventCreate(&before);
 	cudaEventCreate(&after);
 	cudaMallocManaged(&data, MB(mem_size));
 
-	for (int tries = 0; tries < 5; tries++) {
+	for (trials = 0; trials < MAX_TRIALS; trials++) {
 		cudaEventRecord(before, 0);
 		test_kernel<<<BLOCKS_PER_SM, THREADS_PER_BLOCK>>>(data, max_idx);
 		cudaDeviceSynchronize();
+		max_idx = MB(mem_size);
 		cudaEventRecord(after, 0);
 
 		cudaEventSynchronize(before);
 		cudaEventSynchronize(after);
 		cudaEventElapsedTime(&time_elapsed, before, after);
 		total_time += time_elapsed;
+		if (trials == 0)
+			total_time = 0;
 	}
-	std::cout << mem_size << "," << total_time/5 << "," <<
-		total_time/(5*mem_size) << std::endl;
+	std::cout << mem_size << "," << total_time/(trials-1) << "," <<
+		total_time/((trials-1)*mem_size) << std::endl;
 	cudaFree(data);
 
 	return 0;
